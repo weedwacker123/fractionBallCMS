@@ -90,23 +90,42 @@ export interface Activity {
     courtType?: string;
     standard?: string;
   };
-  prerequisites?: string[];
-  learningObjectives?: string;
+  // Lesson content fields (matching the screenshot layout)
+  estimatedTime?: number;
+  learningObjectives?: string[];
+  lessonOverview?: {
+    partNumber: number;
+    title: string;
+    description: string;
+  }[];
   materials?: string[];
   gameRules?: string[];
   keyTerms?: { [key: string]: string };
+  // Prerequisites
+  prerequisites?: string[];
   prerequisiteActivities?: EntityReference[];
-  videos: {
-    videoId: EntityReference;
+  // Related Videos (direct uploads)
+  relatedVideos?: {
+    fileUrl: string;
+    thumbnailUrl?: string;
     title: string;
-    caption: string;
+    caption?: string;
     type: string;
     displayOrder: number;
+    duration?: number;
   }[];
-  resources: {
-    resourceId: EntityReference;
+  // Teacher Resources (direct uploads)
+  teacherResources?: {
+    fileUrl: string;
     title: string;
-    caption: string;
+    caption?: string;
+    type: string;
+  }[];
+  // Student Resources (direct uploads)
+  studentResources?: {
+    fileUrl: string;
+    title: string;
+    caption?: string;
     type: string;
   }[];
   lessonPdf: string;
@@ -243,32 +262,114 @@ export const activitiesCollection = buildCollection<Activity>({
       description: "Activities that should be completed before this one",
     }),
 
-    videos: buildProperty({
-      name: "Videos",
+    // ========== LESSON CONTENT FIELDS ==========
+    estimatedTime: buildProperty({
+      name: "Estimated Time (minutes)",
+      dataType: "number",
+      validation: { min: 1 },
+      description: "Estimated time to complete the activity in minutes (e.g., 45)",
+    }),
+
+    learningObjectives: buildProperty({
+      name: "Learning Objectives",
       dataType: "array",
-      // validation: { required: true, min: 1 },  // Relaxed: Django seeds with empty array
-      description: "Videos associated with this activity",
+      of: {
+        dataType: "string",
+      },
+      description: "What students will be able to do after completing this activity",
+    }),
+
+    lessonOverview: buildProperty({
+      name: "Lesson Overview",
+      dataType: "array",
+      description: "Parts/sections of the lesson",
       of: {
         dataType: "map",
         properties: {
-          videoId: {
-            name: "Select Video",
-            dataType: "reference",
-            path: "videos",
+          partNumber: {
+            name: "Part Number",
+            dataType: "number",
+            validation: { required: true, min: 1 },
+          },
+          title: {
+            name: "Part Title",
+            dataType: "string",
             validation: { required: true },
+          },
+          description: {
+            name: "Description",
+            dataType: "string",
+            multiline: true,
+            validation: { required: true },
+          },
+        },
+      },
+    }),
+
+    materials: buildProperty({
+      name: "Materials",
+      dataType: "array",
+      of: {
+        dataType: "string",
+      },
+      description: "Materials needed for the activity (e.g., Running record, Pencil, Cones)",
+    }),
+
+    gameRules: buildProperty({
+      name: "Game Rules",
+      dataType: "array",
+      of: {
+        dataType: "string",
+      },
+      description: "Rules and instructions for the game/activity",
+    }),
+
+    keyTerms: buildProperty({
+      name: "Key Terms",
+      dataType: "map",
+      keyValue: true,
+      description: "Key terms and their definitions (term → definition)",
+    }),
+
+    // ========== DIRECT VIDEO UPLOADS (Related Videos) ==========
+    relatedVideos: buildProperty({
+      name: "Related Videos (Direct Upload)",
+      dataType: "array",
+      description: "Upload videos directly - these appear in the Related Videos section",
+      of: {
+        dataType: "map",
+        properties: {
+          fileUrl: {
+            name: "Video File",
+            dataType: "string",
+            validation: { required: true },
+            storage: {
+              storagePath: "activity-videos",
+              acceptedFiles: ["video/mp4", "video/webm", "video/quicktime"],
+              maxSize: 500 * 1024 * 1024, // 500MB
+              metadata: {
+                cacheControl: "max-age=3600",
+              },
+            },
+          },
+          thumbnailUrl: {
+            name: "Thumbnail",
+            dataType: "string",
+            storage: {
+              storagePath: "thumbnails/activity-videos",
+              acceptedFiles: ["image/*"],
+              maxSize: 2 * 1024 * 1024, // 2MB
+            },
           },
           title: {
             name: "Video Title",
             dataType: "string",
             validation: { required: true },
-            description: "Display title for this video in the activity",
           },
           caption: {
-            name: "Video Caption",
+            name: "Caption",
             dataType: "string",
-            validation: { required: true },
             multiline: true,
-            description: "Caption explaining the video's purpose",
           },
           type: {
             name: "Video Type",
@@ -281,36 +382,102 @@ export const activitiesCollection = buildCollection<Activity>({
             dataType: "number",
             validation: { required: true, min: 0 },
           },
+          duration: {
+            name: "Duration (seconds)",
+            dataType: "number",
+            validation: { min: 0 },
+          },
         },
       },
     }),
 
-    resources: buildProperty({
-      name: "Resources",
+    // ========== DIRECT TEACHER RESOURCES UPLOAD ==========
+    teacherResources: buildProperty({
+      name: "Teacher Resources (Direct Upload)",
       dataType: "array",
-      // validation: { required: true },  // Relaxed: Django seeds with empty array
-      description: "PDFs, PowerPoints, and Word docs for this activity",
+      description: "Upload teacher resources directly (PDFs, Excel sheets, etc.)",
       of: {
         dataType: "map",
         properties: {
-          resourceId: {
-            name: "Select Resource",
-            dataType: "reference",
-            path: "resources",
+          fileUrl: {
+            name: "Resource File",
+            dataType: "string",
             validation: { required: true },
+            storage: {
+              storagePath: "activity-resources/teacher",
+              acceptedFiles: [
+                "application/pdf",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              ],
+              maxSize: 50 * 1024 * 1024, // 50MB
+              metadata: {
+                cacheControl: "max-age=3600",
+              },
+            },
           },
           title: {
             name: "Resource Title",
             dataType: "string",
             validation: { required: true },
-            description: "Display title for this resource",
           },
           caption: {
-            name: "Resource Caption",
+            name: "Caption/Description",
+            dataType: "string",
+            multiline: true,
+          },
+          type: {
+            name: "Resource Type",
+            dataType: "string",
+            enumValues: resourceTypeValues,
+            validation: { required: true },
+          },
+        },
+      },
+    }),
+
+    // ========== DIRECT STUDENT RESOURCES UPLOAD ==========
+    studentResources: buildProperty({
+      name: "Student Resources (Direct Upload)",
+      dataType: "array",
+      description: "Upload student resources directly (worksheets, handouts, etc.)",
+      of: {
+        dataType: "map",
+        properties: {
+          fileUrl: {
+            name: "Resource File",
             dataType: "string",
             validation: { required: true },
+            storage: {
+              storagePath: "activity-resources/student",
+              acceptedFiles: [
+                "application/pdf",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              ],
+              maxSize: 50 * 1024 * 1024, // 50MB
+              metadata: {
+                cacheControl: "max-age=3600",
+              },
+            },
+          },
+          title: {
+            name: "Resource Title",
+            dataType: "string",
+            validation: { required: true },
+          },
+          caption: {
+            name: "Caption/Description",
+            dataType: "string",
             multiline: true,
-            description: "Caption explaining the resource",
           },
           type: {
             name: "Resource Type",

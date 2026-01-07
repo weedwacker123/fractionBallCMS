@@ -63,6 +63,7 @@ import {
   menuItemsCollection,
   faqsCollection,
   communityPostsCollection,
+  siteConfigCollection,
 } from "./collections";
 
 // Custom authenticator - allows Google sign-in and checks admin access
@@ -125,6 +126,7 @@ const collections = [
   { ...communityPostsCollection, databaseId: "default" },
   { ...taxonomiesCollection, databaseId: "default" },
   { ...usersCollection, databaseId: "default" },
+  { ...siteConfigCollection, databaseId: "default" },
 ];
 
 export default function FireCMSApp() {
