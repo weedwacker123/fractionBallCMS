@@ -46,7 +46,7 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
   group: "Configuration",
   description: "Manage hierarchical tag systems (topics → subtopics, courts → sub-courts)",
 
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
     edit: true,
     create: true,
