@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "fractionball-lms"
-  }
+  },
+  "targets": {
+    "fractionball-lms": {
+      "hosting": {
+        "cms": [
+          "fractionball-cms"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

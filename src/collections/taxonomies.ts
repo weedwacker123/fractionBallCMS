@@ -6,12 +6,16 @@ import { buildCollection, buildProperty, EntityReference } from "@firecms/core";
  * Supports topics, court types, grade levels, and standards
  */
 
-// Taxonomy type enum
+// Common taxonomy types (for reference — admins can also create custom types)
+// Any new type added here automatically appears as an LMS filter dropdown.
 const taxonomyTypeValues = {
   topic: "Topic",
   court: "Court Type",
   grade: "Grade Level",
   standard: "Standard",
+  classroom: "Classroom",
+  difficulty: "Difficulty",
+  equipment: "Equipment",
 };
 
 export interface TaxonomyValue {
@@ -42,12 +46,11 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
   group: "Configuration",
   description: "Manage hierarchical tag systems (topics → subtopics, courts → sub-courts)",
 
-  // Only admins can manage taxonomies
   permissions: ({ authController }) => ({
     read: true,
-    edit: authController.user?.email?.includes("admin") ?? false,
-    create: authController.user?.email?.includes("admin") ?? false,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    edit: true,
+    create: true,
+    delete: true,
   }),
 
   properties: {
@@ -63,7 +66,7 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
       dataType: "string",
       enumValues: taxonomyTypeValues,
       validation: { required: true },
-      description: "Type of taxonomy",
+      description: "Type of taxonomy — each type appears as a filter dropdown on the LMS. New types auto-appear within 30 seconds.",
     }),
 
     parentId: buildProperty({
@@ -76,7 +79,7 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
     values: buildProperty({
       name: "Values",
       dataType: "array",
-      description: "Taxonomy values/options",
+      description: "Taxonomy values/options — these appear as choices in the LMS filter dropdown. Add new values here and they'll be available for filtering.",
       of: {
         dataType: "map",
         properties: {

@@ -84,12 +84,7 @@ export interface Activity {
   location: string;
   iconType: string;
   tags: string[];
-  taxonomy: {
-    topic?: string;
-    subtopic?: string;
-    courtType?: string;
-    standard?: string;
-  };
+  taxonomy: Record<string, any>;
   // Lesson content fields (matching the screenshot layout)
   estimatedTime?: number;
   learningObjectives?: string[];
@@ -227,29 +222,8 @@ export const activitiesCollection = buildCollection<Activity>({
     taxonomy: buildProperty({
       name: "Taxonomy",
       dataType: "map",
-      description: "Hierarchical organization of the activity",
-      properties: {
-        topic: {
-          name: "Topic",
-          dataType: "string",
-          description: "Primary topic (e.g., fractions)",
-        },
-        subtopic: {
-          name: "Subtopic",
-          dataType: "string",
-          description: "Subtopic (e.g., mixed-denominators)",
-        },
-        courtType: {
-          name: "Court Type",
-          dataType: "string",
-          description: "Court type (e.g., fraction-ball-court-1)",
-        },
-        standard: {
-          name: "Standard",
-          dataType: "string",
-          description: "Educational standard (e.g., CCSS.MATH.3.NF.A.1)",
-        },
-      },
+      keyValue: true,
+      description: "Taxonomy tags for this activity. Keys should match taxonomy types (e.g., topic, court, classroom, standard). Values are the taxonomy value keys.",
     }),
 
     prerequisiteActivities: buildProperty({

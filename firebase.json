@@ -6,8 +6,8 @@
     "rules": "storage.rules"
   },
   "hosting": {
+    "target": "cms",
     "public": "dist",
-    "site": "fractionball-cms",
     "ignore": [
       "firebase.json",
       "**/.*",
