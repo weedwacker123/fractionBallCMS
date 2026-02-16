@@ -6,7 +6,16 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage"],
+          firecms: ["@firecms/core", "@firecms/firebase", "@firecms/ui"],
+          mui: ["@mui/material"],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
