@@ -46,11 +46,6 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
   group: "Configuration",
   description: "Manage hierarchical tag systems (topics → subtopics, courts → sub-courts)",
 
-  permissions: ({ authController }: any) => {
-    const isAdmin = authController?.extra?.role === "admin";
-    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
-  },
-
   properties: {
     name: buildProperty({
       name: "Taxonomy Name",

@@ -32,11 +32,6 @@ export const usersCollection = buildCollection<User>({
   group: "User Management",
   description: "Manage users, roles, and access permissions",
 
-  permissions: ({ authController }: any) => {
-    const isAdmin = authController?.extra?.role === "admin";
-    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
-  },
-
   properties: {
     email: buildProperty({
       name: "Email",

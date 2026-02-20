@@ -42,11 +42,6 @@ export const menuItemsCollection = buildCollection<MenuItem>({
   group: "Configuration",
   description: "Manage navigation menus and submenus",
 
-  permissions: ({ authController }: any) => {
-    const isAdmin = authController?.extra?.role === "admin";
-    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
-  },
-
   properties: {
     label: buildProperty({
       name: "Menu Label",
