@@ -36,7 +36,7 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
 
     if (userEntities && userEntities.length > 0) {
       const member = userEntities[0].values as { role?: string };
-      authController.setExtra({ role: member.role || "viewer" });
+      authController.setExtra({ role: (member.role || "viewer").toLowerCase() });
     } else {
       authController.setExtra({ role: "viewer" });
     }
