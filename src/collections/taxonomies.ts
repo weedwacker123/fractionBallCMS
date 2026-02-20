@@ -33,8 +33,8 @@ export interface Taxonomy {
   hierarchical: boolean;
   displayOrder: number;
   active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const taxonomiesCollection = buildCollection<Taxonomy>({

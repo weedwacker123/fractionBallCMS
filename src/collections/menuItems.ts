@@ -29,8 +29,8 @@ export interface MenuItem {
   openInNewTab: boolean;
   active: boolean;
   icon?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const menuItemsCollection = buildCollection<MenuItem>({

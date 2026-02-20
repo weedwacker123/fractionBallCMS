@@ -11,7 +11,7 @@ export interface SiteConfig {
   value: any;
   description: string;
   dataType: string;
-  updatedAt: Date;
+  updatedAt: string;
 }
 
 export const siteConfigCollection = buildCollection<SiteConfig>({

@@ -127,8 +127,8 @@ export interface Activity {
   thumbnailUrl?: string;
   status: string;
   createdBy?: EntityReference;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const activitiesCollection = buildCollection<Activity>({

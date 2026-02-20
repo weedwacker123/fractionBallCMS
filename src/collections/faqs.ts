@@ -31,8 +31,8 @@ export interface FAQ {
   status: string;
   helpful?: number;
   notHelpful?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const faqsCollection = buildCollection<FAQ>({

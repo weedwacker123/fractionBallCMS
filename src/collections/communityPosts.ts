@@ -14,7 +14,7 @@ const statusValues = {
 };
 
 export interface CommunityPost {
-  authorId: EntityReference;
+  authorId: string;
   title: string;
   content: string;
   category: string;
@@ -22,16 +22,16 @@ export interface CommunityPost {
   isPinned: boolean;
   isFlagged: boolean;
   flagReason?: string;
-  flaggedAt?: Date;
+  flaggedAt?: string;
   flaggedBy?: EntityReference;
   moderatedBy?: EntityReference;
-  moderatedAt?: Date;
+  moderatedAt?: string;
   moderationNotes?: string;
   status: string;
   viewCount: number;
   commentCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const communityPostsCollection = buildCollection<CommunityPost>({
