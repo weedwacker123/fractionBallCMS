@@ -5,11 +5,11 @@ import { buildCollection, buildProperty } from "@firecms/core";
  * User management with role-based access
  */
 
-// User role enum
+// User role enum — must match LMS Role choices (uppercase)
 const roleValues = {
-  admin: "Admin",
-  content_manager: "Content Manager",
-  teacher: "Teacher",
+  ADMIN: "Admin",
+  CONTENT_MANAGER: "Content Manager",
+  REGISTERED_USER: "Registered User",
 };
 
 export interface User {

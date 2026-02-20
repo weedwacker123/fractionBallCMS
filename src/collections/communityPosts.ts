@@ -15,6 +15,7 @@ const statusValues = {
 
 export interface CommunityPost {
   authorId: string;
+  authorName: string;
   title: string;
   content: string;
   category: string;
@@ -48,7 +49,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
     "isFlagged",
     "isPinned",
     "flagReason",
-    "authorId",
+    "authorName",
     "category",
     "createdAt",
   ],
@@ -56,10 +57,16 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
   properties: {
     authorId: buildProperty({
-      name: "Author",
+      name: "Author ID",
       dataType: "string",
       validation: { required: true },
-      description: "Post author (user ID)",
+      description: "Firebase UID of the post author",
+    }),
+
+    authorName: buildProperty({
+      name: "Author",
+      dataType: "string",
+      description: "Display name of the post author",
     }),
 
     title: buildProperty({
@@ -81,6 +88,12 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
     category: buildProperty({
       name: "Category",
       dataType: "string",
+      enumValues: {
+        question: "Question",
+        discussion: "Discussion",
+        resource_share: "Resource Share",
+        announcement: "Announcement",
+      },
       description: "Post category",
     }),
 
@@ -191,10 +204,16 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
       properties: {
         authorId: buildProperty({
-          name: "Author",
+          name: "Author ID",
           dataType: "string",
           validation: { required: true },
           description: "Firebase UID of comment author",
+        }),
+
+        authorName: buildProperty({
+          name: "Author",
+          dataType: "string",
+          description: "Display name of the comment author",
         }),
 
         content: buildProperty({
