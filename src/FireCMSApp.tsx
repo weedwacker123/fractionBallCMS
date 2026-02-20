@@ -19,11 +19,9 @@ import {
   siteConfigCollection,
 } from "./collections";
 
-// Authenticator — allow any signed-in user with an email.
-const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
-  user,
-}) => {
-  return !!user?.email;
+// Authenticator — Firebase Auth handles login; just allow all authenticated users.
+const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async () => {
+  return true;
 };
 
 const collections = [

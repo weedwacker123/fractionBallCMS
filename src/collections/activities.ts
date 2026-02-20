@@ -140,11 +140,6 @@ export const activitiesCollection = buildCollection<Activity>({
   group: "Content",
   description: "Educational activities with videos, resources, and lesson plans",
   
-  permissions: ({ authController }: any) => {
-    const isAdmin = authController?.extra?.role === "admin";
-    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
-  },
-
   properties: {
     title: buildProperty({
       name: "Activity Title",
