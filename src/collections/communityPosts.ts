@@ -22,16 +22,16 @@ export interface CommunityPost {
   isPinned: boolean;
   isFlagged: boolean;
   flagReason?: string;
-  flaggedAt?: string;
+  flaggedAt?: Date;
   flaggedBy?: string;
   moderatedBy?: string;
-  moderatedAt?: string;
+  moderatedAt?: Date;
   moderationNotes?: string;
   status: string;
   viewCount: number;
   commentCount: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const communityPostsCollection = buildCollection<CommunityPost>({
@@ -46,6 +46,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
     "title",
     "status",
     "isFlagged",
+    "isPinned",
     "flagReason",
     "authorId",
     "category",
@@ -114,7 +115,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     flaggedAt: buildProperty({
       name: "Flagged At",
-      dataType: "string",
+      dataType: "date",
       description: "When the post was flagged",
     }),
 
@@ -132,7 +133,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     moderatedAt: buildProperty({
       name: "Moderated At",
-      dataType: "string",
+      dataType: "date",
       description: "When moderation action was taken",
     }),
 
@@ -167,13 +168,13 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },
@@ -227,13 +228,13 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
         createdAt: buildProperty({
           name: "Created At",
-          dataType: "string",
+          dataType: "date",
           readOnly: true,
         }),
 
         updatedAt: buildProperty({
           name: "Updated At",
-          dataType: "string",
+          dataType: "date",
           readOnly: true,
         }),
       },

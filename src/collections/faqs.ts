@@ -31,8 +31,8 @@ export interface FAQ {
   status: string;
   helpful?: number;
   notHelpful?: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const faqsCollection = buildCollection<FAQ>({
@@ -103,13 +103,13 @@ export const faqsCollection = buildCollection<FAQ>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

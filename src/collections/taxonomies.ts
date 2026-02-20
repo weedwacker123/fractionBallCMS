@@ -33,8 +33,8 @@ export interface Taxonomy {
   hierarchical: boolean;
   displayOrder: number;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const taxonomiesCollection = buildCollection<Taxonomy>({
@@ -123,13 +123,13 @@ export const taxonomiesCollection = buildCollection<Taxonomy>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

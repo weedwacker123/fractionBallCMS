@@ -11,7 +11,7 @@ export interface SiteConfig {
   value: any;
   description: string;
   dataType: string;
-  updatedAt: string;
+  updatedAt: Date;
 }
 
 export const siteConfigCollection = buildCollection<SiteConfig>({
@@ -59,7 +59,7 @@ export const siteConfigCollection = buildCollection<SiteConfig>({
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

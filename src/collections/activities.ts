@@ -123,8 +123,8 @@ export interface Activity {
   thumbnailUrl?: string;
   status: string;
   createdBy?: EntityReference;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const activitiesCollection = buildCollection<Activity>({
@@ -505,13 +505,13 @@ export const activitiesCollection = buildCollection<Activity>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

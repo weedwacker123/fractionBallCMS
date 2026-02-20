@@ -29,8 +29,8 @@ export interface MenuItem {
   openInNewTab: boolean;
   active: boolean;
   icon?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const menuItemsCollection = buildCollection<MenuItem>({
@@ -107,13 +107,13 @@ export const menuItemsCollection = buildCollection<MenuItem>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

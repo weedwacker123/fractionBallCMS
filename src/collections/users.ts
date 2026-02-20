@@ -17,10 +17,10 @@ export interface User {
   displayName: string;
   role: string;
   isActive: boolean;
-  lastLogin?: string;
+  lastLogin?: Date;
   loginCount: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const usersCollection = buildCollection<User>({
@@ -66,7 +66,7 @@ export const usersCollection = buildCollection<User>({
 
     lastLogin: buildProperty({
       name: "Last Login",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
       description: "Last login timestamp",
     }),
@@ -80,13 +80,13 @@ export const usersCollection = buildCollection<User>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "string",
+      dataType: "date",
       readOnly: true,
     }),
   },

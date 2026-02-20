@@ -119,6 +119,9 @@ The `taxonomies` collection stores dynamic categories (grade, topic, court, stan
 - **content_manager** — Can edit content, videos, resources
 - **teacher** — Read-only access, can manage own posts
 
+### Date/timestamp fields
+All timestamp fields (`createdAt`, `updatedAt`, `lastLogin`, `flaggedAt`, `moderatedAt`) use `dataType: "date"` in collection schemas. Firestore stores these as Timestamp objects — do NOT use `dataType: "string"` for timestamps or FireCMS will show "unexpected value" errors.
+
 ### Collections relationship
 Activities are the core content type. They reference videos, resources, and taxonomies. The LMS reads these from Firestore directly.
 
