@@ -22,23 +22,41 @@ service firebase.storage {
     
     // Videos folder - MP4 files up to 500MB
     match /videos/{videoId} {
-      allow read: if isAuthenticated();
-      allow write: if isContentManager() 
+      allow read: if true;
+      allow write: if isContentManager()
         && isValidFileSize(500 * 1024 * 1024)
         && request.resource.contentType.matches('video/.*');
     }
-    
+
+    // Activity videos - up to 500MB (used by CMS activity uploads)
+    // Public read required: LMS serves videos via direct URLs without Firebase auth
+    match /activity-videos/{videoId} {
+      allow read: if true;
+      allow write: if isContentManager()
+        && isValidFileSize(500 * 1024 * 1024)
+        && request.resource.contentType.matches('video/.*');
+    }
+
     // Resources folder - Documents up to 50MB
     match /resources/{resourceId} {
-      allow read: if isAuthenticated();
-      allow write: if isContentManager() 
+      allow read: if true;
+      allow write: if isContentManager()
+        && isValidFileSize(50 * 1024 * 1024);
+    }
+
+    // Activity resources (teacher & student) - documents up to 50MB
+    // Public read required: LMS serves download links without Firebase auth
+    match /activity-resources/{folder}/{resourceId} {
+      allow read: if true;
+      allow write: if isContentManager()
         && isValidFileSize(50 * 1024 * 1024);
     }
     
     // Lesson plans folder - PDFs up to 10MB
+    // Public read required: LMS uses Google Docs Viewer which doesn't send Firebase auth
     match /lesson-plans/{planId} {
-      allow read: if isAuthenticated();
-      allow write: if isContentManager() 
+      allow read: if true;
+      allow write: if isContentManager()
         && isValidFileSize(10 * 1024 * 1024)
         && request.resource.contentType == 'application/pdf';
     }

@@ -16,7 +16,6 @@ import {
   menuItemsCollection,
   faqsCollection,
   communityPostsCollection,
-  siteConfigCollection,
 } from "./collections";
 
 // Authenticator — Firebase Auth handles login; just allow all authenticated users.
@@ -31,7 +30,6 @@ const collections = [
   { ...communityPostsCollection, databaseId: "default" },
   { ...taxonomiesCollection, databaseId: "default" },
   { ...usersCollection, databaseId: "default" },
-  { ...siteConfigCollection, databaseId: "default" },
 ];
 
 export default function FireCMSApp() {

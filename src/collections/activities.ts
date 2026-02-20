@@ -37,12 +37,8 @@ const videoTypeValues = {
   related: "Related",
 };
 
-// Resource types
-const resourceTypeValues = {
-  pdf: "PDF",
-  pptx: "PowerPoint",
-  docx: "Word Doc",
-};
+// Resource file type is auto-detected from the uploaded file URL extension.
+// No manual dropdown needed — the LMS parses the extension (pdf, pptx, docx, xlsx, etc.).
 
 // Location values for activities
 const locationValues = {
@@ -99,6 +95,8 @@ export interface Activity {
   // Prerequisites
   prerequisites?: string[];
   prerequisiteActivities?: EntityReference[];
+  // Related Activities (curated by editors)
+  relatedActivities?: EntityReference[];
   // Related Videos (direct uploads)
   relatedVideos?: {
     fileUrl: string;
@@ -114,14 +112,12 @@ export interface Activity {
     fileUrl: string;
     title: string;
     caption?: string;
-    type: string;
   }[];
   // Student Resources (direct uploads)
   studentResources?: {
     fileUrl: string;
     title: string;
     caption?: string;
-    type: string;
   }[];
   lessonPdf: string;
   thumbnailUrl?: string;
@@ -219,6 +215,15 @@ export const activitiesCollection = buildCollection<Activity>({
       description: "Taxonomy tags for this activity. Keys should match taxonomy types (e.g., topic, court, classroom, standard). Values are the taxonomy value keys.",
     }),
 
+    prerequisites: buildProperty({
+      name: "Prerequisite Skills",
+      dataType: "array",
+      of: {
+        dataType: "string",
+      },
+      description: "Prerequisite skills or knowledge (e.g., 'Counting to 10', 'Basic throwing skills')",
+    }),
+
     prerequisiteActivities: buildProperty({
       name: "Prerequisite Activities",
       dataType: "array",
@@ -227,6 +232,16 @@ export const activitiesCollection = buildCollection<Activity>({
         path: "activities",
       },
       description: "Activities that should be completed before this one",
+    }),
+
+    relatedActivities: buildProperty({
+      name: "Related Activities",
+      dataType: "array",
+      of: {
+        dataType: "reference",
+        path: "activities",
+      },
+      description: "Curated list of related activities to show on the detail page",
     }),
 
     // ========== LESSON CONTENT FIELDS ==========
@@ -397,12 +412,6 @@ export const activitiesCollection = buildCollection<Activity>({
             dataType: "string",
             multiline: true,
           },
-          type: {
-            name: "Resource Type",
-            dataType: "string",
-            enumValues: resourceTypeValues,
-            validation: { required: true },
-          },
         },
       },
     }),
@@ -445,12 +454,6 @@ export const activitiesCollection = buildCollection<Activity>({
             name: "Caption/Description",
             dataType: "string",
             multiline: true,
-          },
-          type: {
-            name: "Resource Type",
-            dataType: "string",
-            enumValues: resourceTypeValues,
-            validation: { required: true },
           },
         },
       },
