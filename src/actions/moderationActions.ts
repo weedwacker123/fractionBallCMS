@@ -17,7 +17,7 @@ export async function flagPost(
   return {
     isFlagged: true,
     status: "flagged",
-    flaggedAt: new Date(),
+    flaggedAt: new Date().toISOString(),
     flagReason: reason,
   };
 }
@@ -32,7 +32,7 @@ export async function approvePost(
   return {
     isFlagged: false,
     status: "active",
-    moderatedAt: new Date(),
+    moderatedAt: new Date().toISOString(),
     moderationNotes: "Approved by moderator",
   };
 }
@@ -47,7 +47,7 @@ export async function deletePost(
 ): Promise<Partial<CommunityPost>> {
   return {
     status: "deleted",
-    moderatedAt: new Date(),
+    moderatedAt: new Date().toISOString(),
     moderationNotes: reason || "Deleted by moderator",
   };
 }
