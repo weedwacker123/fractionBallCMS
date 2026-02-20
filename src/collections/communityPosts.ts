@@ -1,4 +1,4 @@
-import { buildCollection, buildProperty, EntityReference } from "@firecms/core";
+import { buildCollection, buildProperty } from "@firecms/core";
 
 /**
  * Community Posts Collection
@@ -23,8 +23,8 @@ export interface CommunityPost {
   isFlagged: boolean;
   flagReason?: string;
   flaggedAt?: string;
-  flaggedBy?: EntityReference;
-  moderatedBy?: EntityReference;
+  flaggedBy?: string;
+  moderatedBy?: string;
   moderatedAt?: string;
   moderationNotes?: string;
   status: string;
@@ -42,6 +42,16 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
   icon: "Forum",
   group: "Community",
   description: "Community forum posts with moderation tools",
+  propertiesOrder: [
+    "title",
+    "status",
+    "isFlagged",
+    "flagReason",
+    "authorId",
+    "category",
+    "createdAt",
+  ],
+  initialSort: ["createdAt", "desc"],
 
   properties: {
     authorId: buildProperty({
@@ -110,16 +120,14 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     flaggedBy: buildProperty({
       name: "Flagged By",
-      dataType: "reference",
-      path: "users",
-      description: "User who flagged the post",
+      dataType: "string",
+      description: "Firebase UID of user who flagged the post",
     }),
 
     moderatedBy: buildProperty({
       name: "Moderated By",
-      dataType: "reference",
-      path: "users",
-      description: "Admin who reviewed/moderated the post",
+      dataType: "string",
+      description: "Firebase UID of admin who reviewed/moderated the post",
     }),
 
     moderatedAt: buildProperty({
@@ -183,9 +191,9 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
       properties: {
         authorId: buildProperty({
           name: "Author",
-          dataType: "reference",
-          path: "users",
+          dataType: "string",
           validation: { required: true },
+          description: "Firebase UID of comment author",
         }),
 
         content: buildProperty({
@@ -207,8 +215,8 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
         moderatedBy: buildProperty({
           name: "Moderated By",
-          dataType: "reference",
-          path: "users",
+          dataType: "string",
+          description: "Firebase UID of moderator",
         }),
 
         status: buildProperty({
