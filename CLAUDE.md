@@ -37,12 +37,9 @@ src/
 ├── FireCMSApp.tsx        # FireCMS config, collections, auth setup
 ├── firebase-config.ts    # Firebase SDK config (env vars with fallbacks)
 ├── collections/          # Firestore collection schemas
-│   ├── activities.ts     # Main educational content
-│   ├── users.ts          # User management (admin/content_manager/teacher)
+│   ├── activities.ts     # Main educational content (videos, resources embedded)
+│   ├── users.ts          # User management (admin only)
 │   ├── taxonomies.ts     # Dynamic taxonomy system (grade, topic, court, etc.)
-│   ├── videos.ts         # Video content
-│   ├── resources.ts      # Downloadable resources
-│   ├── pages.ts          # Static pages
 │   ├── menuItems.ts      # Navigation items
 │   ├── faqs.ts           # FAQ entries
 │   ├── communityPosts.ts # Community with moderation

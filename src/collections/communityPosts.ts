@@ -43,12 +43,10 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
   group: "Community",
   description: "Community forum posts with moderation tools",
 
-  permissions: () => ({
-    read: true,
-    edit: true,
-    create: true,
-    delete: true,
-  }),
+  permissions: ({ authController }: any) => {
+    const isAdmin = authController?.extra?.role === "admin";
+    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
+  },
 
   properties: {
     authorId: buildProperty({

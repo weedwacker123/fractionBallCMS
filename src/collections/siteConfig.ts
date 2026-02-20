@@ -23,12 +23,10 @@ export const siteConfigCollection = buildCollection<SiteConfig>({
   group: "Configuration",
   description: "Site-wide configuration values (file limits, pagination, etc.)",
 
-  permissions: () => ({
-    read: true,
-    edit: true,
-    create: true,
-    delete: true,
-  }),
+  permissions: ({ authController }: any) => {
+    const isAdmin = authController?.extra?.role === "admin";
+    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
+  },
 
   properties: {
     key: buildProperty({

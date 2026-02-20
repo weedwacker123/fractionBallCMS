@@ -44,12 +44,10 @@ export const faqsCollection = buildCollection<FAQ>({
   group: "Support",
   description: "Frequently Asked Questions - categorized and ordered",
 
-  permissions: () => ({
-    read: true,
-    edit: true,
-    create: true,
-    delete: true,
-  }),
+  permissions: ({ authController }: any) => {
+    const isAdmin = authController?.extra?.role === "admin";
+    return { read: isAdmin, edit: isAdmin, create: isAdmin, delete: isAdmin };
+  },
 
   // Initial sort by category then displayOrder
   initialSort: ["category", "asc"],

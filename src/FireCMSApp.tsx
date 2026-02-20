@@ -19,7 +19,8 @@ import {
   siteConfigCollection,
 } from "./collections";
 
-// Custom authenticator - only allows admin users
+// Authenticator — let everyone sign in, then fetch their role.
+// Non-admins get locked out at the collection permission level.
 const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
   user,
   authController,
@@ -35,21 +36,17 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
 
     if (userEntities && userEntities.length > 0) {
       const member = userEntities[0].values as { role?: string };
-      if (member.role === "admin") {
-        authController.setExtra({ role: "admin" });
-        return true;
-      }
+      authController.setExtra({ role: member.role || "viewer" });
+    } else {
+      authController.setExtra({ role: "viewer" });
     }
-
-    // Deny access to non-admin users
-    return false;
-  } catch (error) {
-    console.error("Auth: Firestore query failed:", error);
-    return false;
+  } catch {
+    authController.setExtra({ role: "viewer" });
   }
+
+  return true;
 };
 
-// All collections for the CMS - explicitly set databaseId to "default"
 const collections = [
   { ...activitiesCollection, databaseId: "default" },
   { ...menuItemsCollection, databaseId: "default" },
