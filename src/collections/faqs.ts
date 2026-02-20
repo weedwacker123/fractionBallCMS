@@ -44,11 +44,11 @@ export const faqsCollection = buildCollection<FAQ>({
   group: "Support",
   description: "Frequently Asked Questions - categorized and ordered",
 
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
     edit: true,
     create: true,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    delete: true,
   }),
 
   // Initial sort by category then displayOrder
@@ -110,15 +110,13 @@ export const faqsCollection = buildCollection<FAQ>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "date",
-      autoValue: "on_create",
+      dataType: "string",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },

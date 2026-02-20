@@ -42,12 +42,11 @@ export const menuItemsCollection = buildCollection<MenuItem>({
   group: "Configuration",
   description: "Manage navigation menus and submenus",
 
-  // Only admins can manage menus
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
-    edit: authController.user?.email?.includes("admin") ?? false,
-    create: authController.user?.email?.includes("admin") ?? false,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    edit: true,
+    create: true,
+    delete: true,
   }),
 
   properties: {
@@ -115,15 +114,13 @@ export const menuItemsCollection = buildCollection<MenuItem>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "date",
-      autoValue: "on_create",
+      dataType: "string",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },

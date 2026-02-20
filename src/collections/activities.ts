@@ -140,11 +140,11 @@ export const activitiesCollection = buildCollection<Activity>({
   group: "Content",
   description: "Educational activities with videos, resources, and lesson plans",
   
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
     edit: true,
     create: true,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    delete: true,
   }),
 
   properties: {
@@ -509,15 +509,13 @@ export const activitiesCollection = buildCollection<Activity>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "date",
-      autoValue: "on_create",
+      dataType: "string",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },

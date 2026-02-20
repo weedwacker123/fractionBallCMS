@@ -6,14 +6,6 @@ import { buildCollection, buildProperty, EntityReference } from "@firecms/core";
  * Per TRD: Flagging and moderation confirmed as critical
  */
 
-// Post category enum
-const categoryValues = {
-  question: "Question",
-  discussion: "Discussion",
-  resource_share: "Resource Share",
-  announcement: "Announcement",
-};
-
 // Post status enum - includes flagged state per TRD
 const statusValues = {
   active: "Active",
@@ -51,20 +43,19 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
   group: "Community",
   description: "Community forum posts with moderation tools",
 
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
     edit: true,
-    create: authController.user?.email?.includes("admin") ?? false,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    create: true,
+    delete: true,
   }),
 
   properties: {
     authorId: buildProperty({
       name: "Author",
-      dataType: "reference",
-      path: "users",
+      dataType: "string",
       validation: { required: true },
-      description: "Post author",
+      description: "Post author (user ID)",
     }),
 
     title: buildProperty({
@@ -86,8 +77,6 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
     category: buildProperty({
       name: "Category",
       dataType: "string",
-      enumValues: categoryValues,
-      validation: { required: true },
       description: "Post category",
     }),
 
@@ -122,7 +111,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     flaggedAt: buildProperty({
       name: "Flagged At",
-      dataType: "date",
+      dataType: "string",
       description: "When the post was flagged",
     }),
 
@@ -142,7 +131,7 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     moderatedAt: buildProperty({
       name: "Moderated At",
-      dataType: "date",
+      dataType: "string",
       description: "When moderation action was taken",
     }),
 
@@ -177,15 +166,13 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "date",
-      autoValue: "on_create",
+      dataType: "string",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },
@@ -239,15 +226,13 @@ export const communityPostsCollection = buildCollection<CommunityPost>({
 
         createdAt: buildProperty({
           name: "Created At",
-          dataType: "date",
-          autoValue: "on_create",
+          dataType: "string",
           readOnly: true,
         }),
 
         updatedAt: buildProperty({
           name: "Updated At",
-          dataType: "date",
-          autoValue: "on_update",
+          dataType: "string",
           readOnly: true,
         }),
       },

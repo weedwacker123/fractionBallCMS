@@ -1,9 +1,8 @@
-import { buildCollection, buildProperty, EntityReference } from "@firecms/core";
+import { buildCollection, buildProperty } from "@firecms/core";
 
 /**
  * Users Collection
  * User management with role-based access
- * Per TRD: Admin can create, delete, change roles, bulk upload via CSV
  */
 
 // User role enum
@@ -13,28 +12,15 @@ const roleValues = {
   teacher: "Teacher",
 };
 
-// Auth provider enum
-const authProviderValues = {
-  google: "Google",
-  microsoft: "Microsoft",
-  email: "Email/Password",
-};
-
 export interface User {
   email: string;
   displayName: string;
   role: string;
-  customRoleId?: EntityReference;
-  authProvider: string;
-  districtId?: string;
-  schoolName?: string;
-  phone?: string;
-  avatar?: string;
   isActive: boolean;
-  lastLogin?: Date;
+  lastLogin?: string;
   loginCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const usersCollection = buildCollection<User>({
@@ -46,12 +32,11 @@ export const usersCollection = buildCollection<User>({
   group: "User Management",
   description: "Manage users, roles, and access permissions",
 
-  // Only admins can fully manage users
-  permissions: ({ authController }) => ({
+  permissions: () => ({
     read: true,
-    edit: authController.user?.email?.includes("admin") ?? false,
-    create: authController.user?.email?.includes("admin") ?? false,
-    delete: authController.user?.email?.includes("admin") ?? false,
+    edit: true,
+    create: true,
+    delete: true,
   }),
 
   properties: {
@@ -69,7 +54,7 @@ export const usersCollection = buildCollection<User>({
       name: "Display Name",
       dataType: "string",
       validation: { required: true, min: 2, max: 100 },
-      description: "User can edit this in their profile",
+      description: "User's display name",
     }),
 
     role: buildProperty({
@@ -80,59 +65,15 @@ export const usersCollection = buildCollection<User>({
       description: "User role determines access permissions",
     }),
 
-    customRoleId: buildProperty({
-      name: "Custom Role",
-      dataType: "reference",
-      path: "roles",
-      description: "Optional custom role (for future expansion)",
-    }),
-
-    authProvider: buildProperty({
-      name: "Auth Provider",
-      dataType: "string",
-      enumValues: authProviderValues,
-      validation: { required: true },
-      description: "How the user logs in",
-    }),
-
-    districtId: buildProperty({
-      name: "District ID",
-      dataType: "string",
-      description: "School district identifier",
-    }),
-
-    schoolName: buildProperty({
-      name: "School Name",
-      dataType: "string",
-      description: "User's school",
-    }),
-
-    phone: buildProperty({
-      name: "Phone",
-      dataType: "string",
-      description: "Contact phone number",
-    }),
-
-    avatar: buildProperty({
-      name: "Avatar",
-      dataType: "string",
-      storage: {
-        storagePath: "avatars",
-        acceptedFiles: ["image/*"],
-        maxSize: 1 * 1024 * 1024, // 1MB
-      },
-      description: "User profile picture",
-    }),
-
     isActive: buildProperty({
       name: "Active",
       dataType: "boolean",
-      description: "Whether the user account is active",
+      description: "Enable or disable this user's access",
     }),
 
     lastLogin: buildProperty({
       name: "Last Login",
-      dataType: "date",
+      dataType: "string",
       readOnly: true,
       description: "Last login timestamp",
     }),
@@ -146,15 +87,13 @@ export const usersCollection = buildCollection<User>({
 
     createdAt: buildProperty({
       name: "Created At",
-      dataType: "date",
-      autoValue: "on_create",
+      dataType: "string",
       readOnly: true,
     }),
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },

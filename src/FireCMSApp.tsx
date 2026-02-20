@@ -11,18 +11,15 @@ import { firebaseConfig } from "./firebase-config";
 // Import all collections
 import {
   activitiesCollection,
-  videosCollection,
-  resourcesCollection,
   usersCollection,
   taxonomiesCollection,
-  pagesCollection,
   menuItemsCollection,
   faqsCollection,
   communityPostsCollection,
   siteConfigCollection,
 } from "./collections";
 
-// Custom authenticator - allows Google sign-in and checks admin access
+// Custom authenticator - only allows admin users
 const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
   user,
   authController,
@@ -38,27 +35,23 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
 
     if (userEntities && userEntities.length > 0) {
       const member = userEntities[0].values as { role?: string };
-      authController.setExtra({ role: member.role || "teacher" });
-      return true;
+      if (member.role === "admin") {
+        authController.setExtra({ role: "admin" });
+        return true;
+      }
     }
 
-    // Allow first-time users (they'll be created as teachers)
-    // For admin access, they need to be added to the users collection first
-    authController.setExtra({ role: "teacher" });
-    return true;
+    // Deny access to non-admin users
+    return false;
   } catch (error) {
     console.error("Auth: Firestore query failed:", error);
-    authController.setExtra({ role: "teacher" });
-    return true;
+    return false;
   }
 };
 
 // All collections for the CMS - explicitly set databaseId to "default"
 const collections = [
   { ...activitiesCollection, databaseId: "default" },
-  { ...videosCollection, databaseId: "default" },
-  { ...resourcesCollection, databaseId: "default" },
-  { ...pagesCollection, databaseId: "default" },
   { ...menuItemsCollection, databaseId: "default" },
   { ...faqsCollection, databaseId: "default" },
   { ...communityPostsCollection, databaseId: "default" },

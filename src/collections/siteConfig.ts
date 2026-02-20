@@ -23,12 +23,11 @@ export const siteConfigCollection = buildCollection<SiteConfig>({
   group: "Configuration",
   description: "Site-wide configuration values (file limits, pagination, etc.)",
 
-  // Only admins can manage site config
-  permissions: ({ authController }) => ({
-    read: authController.user?.email?.includes("admin") ?? false,
-    edit: authController.user?.email?.includes("admin") ?? false,
-    create: authController.user?.email?.includes("admin") ?? false,
-    delete: authController.user?.email?.includes("admin") ?? false,
+  permissions: () => ({
+    read: true,
+    edit: true,
+    create: true,
+    delete: true,
   }),
 
   properties: {
@@ -67,8 +66,7 @@ export const siteConfigCollection = buildCollection<SiteConfig>({
 
     updatedAt: buildProperty({
       name: "Updated At",
-      dataType: "date",
-      autoValue: "on_update",
+      dataType: "string",
       readOnly: true,
     }),
   },
