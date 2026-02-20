@@ -19,32 +19,11 @@ import {
   siteConfigCollection,
 } from "./collections";
 
-// Authenticator — let everyone sign in, then fetch their role.
-// Non-admins get locked out at the collection permission level.
+// Authenticator — allow any signed-in user with an email.
 const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
   user,
-  authController,
-  dataSourceDelegate,
 }) => {
-  if (!user?.email) return false;
-
-  try {
-    const userEntities = await dataSourceDelegate.fetchCollection({
-      path: "users",
-      filter: { email: ["==", user.email] },
-    });
-
-    if (userEntities && userEntities.length > 0) {
-      const member = userEntities[0].values as { role?: string };
-      authController.setExtra({ role: (member.role || "viewer").toLowerCase() });
-    } else {
-      authController.setExtra({ role: "viewer" });
-    }
-  } catch {
-    authController.setExtra({ role: "viewer" });
-  }
-
-  return true;
+  return !!user?.email;
 };
 
 const collections = [
