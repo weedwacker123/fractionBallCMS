@@ -7,7 +7,7 @@ export { activitiesCollection } from "./activities";
 export { taxonomiesCollection } from "./taxonomies";
 export { menuItemsCollection } from "./menuItems";
 export { faqsCollection } from "./faqs";
-export { communityPostsCollection } from "./communityPosts";
+export { communityPostsCollection, buildCommunityPostsCollection } from "./communityPosts";
 export { usersCollection } from "./users";
 export { siteConfigCollection } from "./siteConfig";
 

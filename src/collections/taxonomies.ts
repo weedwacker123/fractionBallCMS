@@ -16,6 +16,7 @@ const taxonomyTypeValues = {
   classroom: "Classroom",
   difficulty: "Difficulty",
   equipment: "Equipment",
+  community_category: "Community Category",
 };
 
 export interface TaxonomyValue {
