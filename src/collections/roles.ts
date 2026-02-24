@@ -9,19 +9,19 @@ import { buildCollection, buildProperties, buildProperty } from "@firecms/core";
 // All permission keys the LMS recognizes.
 // Keep in sync with PERMISSION_KEYS in LMS accounts/role_service.py
 export const permissionKeys: Record<string, string> = {
-  "community.create": "Community: Create Posts",
-  "community.moderate": "Community: Moderate",
-  "content.manage": "Content: Create/Edit/Delete",
-  "content.approve": "Content: Approve Workflow",
-  "cms.access": "CMS: Access Interface",
-  "reports.view": "Reports: View Dashboards",
-  "library.videos": "Library: Video Access",
-  "library.resources": "Library: Resource Access",
-  "dashboard.view": "Dashboard: Teacher Dashboard",
-  "users.manage": "Admin: Manage Users",
-  "schools.manage": "Admin: Manage Schools",
-  "bulk.upload": "Content: Bulk Upload",
-  "notes.access": "Notes: Personal Notes",
+  "community_create": "Community: Create Posts",
+  "community_moderate": "Community: Moderate",
+  "content_manage": "Content: Create/Edit/Delete",
+  "content_approve": "Content: Approve Workflow",
+  "cms_access": "CMS: Access Interface",
+  "reports_view": "Reports: View Dashboards",
+  "library_videos": "Library: Video Access",
+  "library_resources": "Library: Resource Access",
+  "dashboard_view": "Dashboard: Teacher Dashboard",
+  "users_manage": "Admin: Manage Users",
+  "schools_manage": "Admin: Manage Schools",
+  "bulk_upload": "Content: Bulk Upload",
+  "notes_access": "Notes: Personal Notes",
 };
 
 export interface Role {
