@@ -9,6 +9,7 @@ import {
   EntityCollectionsBuilder,
   EnumValueConfig,
 } from "@firecms/core";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 import { firebaseConfig } from "./firebase-config";
 
@@ -24,9 +25,65 @@ import {
 } from "./collections";
 import type { Taxonomy, Role } from "./collections";
 
-// Authenticator — Firebase Auth handles login; just allow all authenticated users.
-const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async () => {
-  return true;
+/**
+ * Authenticator — checks user's Firestore role for CMS permissions.
+ * Denies access if user lacks both cms_view and cms_edit.
+ * Sets FireCMS roles so collections enforce read-only vs edit.
+ */
+const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
+  user,
+  authController,
+}) => {
+  if (!user) return false;
+
+  try {
+    const db = getFirestore();
+
+    // Look up user document by Firebase UID
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists()) {
+      console.warn("CMS auth: no user document found for", user.uid);
+      return false;
+    }
+
+    const roleKey = userSnap.data()?.role;
+    if (!roleKey) {
+      console.warn("CMS auth: user has no role assigned");
+      return false;
+    }
+
+    // Fetch role permissions
+    const roleSnap = await getDoc(doc(db, "roles", roleKey));
+    const permissions = roleSnap.data()?.permissions || {};
+    const hasCmsView = permissions.cms_view === true;
+    const hasCmsEdit = permissions.cms_edit === true;
+
+    if (!hasCmsView && !hasCmsEdit) {
+      console.warn("CMS auth: role", roleKey, "lacks cms_view and cms_edit");
+      return false;
+    }
+
+    // Set FireCMS roles for collection-level permission enforcement
+    authController.setUserRoles?.([
+      {
+        id: roleKey,
+        name: roleSnap.data()?.name || roleKey,
+        isAdmin: roleKey === "ADMIN",
+        defaultPermissions: {
+          read: true,
+          create: hasCmsEdit,
+          edit: hasCmsEdit,
+          delete: hasCmsEdit,
+        },
+      },
+    ]);
+
+    return true;
+  } catch (error) {
+    console.error("CMS auth: failed to check permissions", error);
+    // Allow access on error to avoid locking out users during Firestore outages
+    return true;
+  }
 };
 
 /**

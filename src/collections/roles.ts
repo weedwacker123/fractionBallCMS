@@ -9,19 +9,12 @@ import { buildCollection, buildProperties, buildProperty } from "@firecms/core";
 // All permission keys the LMS recognizes.
 // Keep in sync with PERMISSION_KEYS in LMS accounts/role_service.py
 export const permissionKeys: Record<string, string> = {
-  "community_create": "Community: Create Posts",
+  "cms_view": "CMS: View",
+  "cms_edit": "CMS: Edit",
+  "activities_view": "Activities: View",
+  "resources_download": "Resources: Download",
+  "community_post": "Community: Post",
   "community_moderate": "Community: Moderate",
-  "content_manage": "Content: Create/Edit/Delete",
-  "content_approve": "Content: Approve Workflow",
-  "cms_access": "CMS: Access Interface",
-  "reports_view": "Reports: View Dashboards",
-  "library_videos": "Library: Video Access",
-  "library_resources": "Library: Resource Access",
-  "dashboard_view": "Dashboard: Teacher Dashboard",
-  "users_manage": "Admin: Manage Users",
-  "schools_manage": "Admin: Manage Schools",
-  "bulk_upload": "Content: Bulk Upload",
-  "notes_access": "Notes: Personal Notes",
 };
 
 export interface Role {
@@ -65,13 +58,41 @@ export const rolesCollection = buildCollection<Role>({
     "updatedAt",
   ],
 
+  callbacks: {
+    onPreSave: ({ values, status }) => {
+      const now = new Date();
+      if (status === "new" || status === "copy") {
+        values.createdAt = now;
+      }
+      values.updatedAt = now;
+
+      // Normalize key to UPPER_SNAKE_CASE
+      if (values.key) {
+        values.key = values.key
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^A-Z0-9_]/g, "");
+      }
+
+      return values;
+    },
+    onSaveSuccess: ({ context }) => {
+      // Re-run collectionsBuilder so the Users role dropdown picks up changes
+      context.navigation.refreshNavigation();
+    },
+    onDelete: ({ context }) => {
+      context.navigation.refreshNavigation();
+    },
+  },
+
   properties: {
     key: buildProperty({
       name: "Role Key",
       dataType: "string",
       validation: { required: true, min: 2, max: 50 },
       description:
-        "Unique identifier (e.g., ADMIN, CONTENT_MANAGER). Stored on user records.",
+        "Unique identifier (e.g., ADMIN, CONTENT_MANAGER). Auto-converted to UPPER_SNAKE_CASE.",
     }),
 
     name: buildProperty({
