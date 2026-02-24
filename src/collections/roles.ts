@@ -1,4 +1,4 @@
-import { buildCollection, buildProperty } from "@firecms/core";
+import { buildCollection, buildProperties, buildProperty } from "@firecms/core";
 
 /**
  * Roles Collection
@@ -34,6 +34,16 @@ export interface Role {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const permissionProperties = buildProperties<Record<string, boolean>>(
+  Object.entries(permissionKeys).reduce((acc, [key, label]) => {
+    acc[key] = {
+      name: label,
+      dataType: "boolean",
+    };
+    return acc;
+  }, {} as Record<string, { name: string; dataType: "boolean" }>)
+);
 
 export const rolesCollection = buildCollection<Role>({
   id: "roles",
@@ -93,19 +103,11 @@ export const rolesCollection = buildCollection<Role>({
       description: "Controls sort order in dropdowns (lower = first)",
     }),
 
-    permissions: buildProperty({
+    permissions: buildProperty<Record<string, boolean>>({
       name: "Permissions",
       dataType: "map",
       description: "Toggle which permissions this role grants",
-      properties: Object.fromEntries(
-        Object.entries(permissionKeys).map(([key, label]) => [
-          key,
-          buildProperty({
-            name: label,
-            dataType: "boolean",
-          }),
-        ])
-      ),
+      properties: permissionProperties,
     }),
 
     createdAt: buildProperty({
