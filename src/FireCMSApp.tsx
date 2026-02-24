@@ -15,13 +15,14 @@ import { firebaseConfig } from "./firebase-config";
 // Import all collections
 import {
   activitiesCollection,
-  usersCollection,
+  buildUsersCollection,
   taxonomiesCollection,
   menuItemsCollection,
   faqsCollection,
   buildCommunityPostsCollection,
+  rolesCollection,
 } from "./collections";
-import type { Taxonomy } from "./collections";
+import type { Taxonomy, Role } from "./collections";
 
 // Authenticator — Firebase Auth handles login; just allow all authenticated users.
 const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async () => {
@@ -29,12 +30,15 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async () =
 };
 
 /**
- * Collections builder that fetches community_category taxonomy from Firestore
- * and injects dynamic enumValues into the communityPosts collection.
+ * Collections builder that fetches dynamic data from Firestore:
+ * 1. community_category taxonomy → communityPosts category enum
+ * 2. roles → users role enum
  */
 const collectionsBuilder: EntityCollectionsBuilder = async ({ dataSource }) => {
   let communityPosts;
+  let users;
 
+  // Fetch community categories (existing logic)
   try {
     const taxonomyEntities = await dataSource.fetchCollection<Taxonomy>({
       path: "taxonomies",
@@ -65,13 +69,40 @@ const collectionsBuilder: EntityCollectionsBuilder = async ({ dataSource }) => {
     communityPosts = buildCommunityPostsCollection();
   }
 
+  // Fetch roles for dynamic user role dropdown
+  try {
+    const roleEntities = await dataSource.fetchCollection<Role>({
+      path: "roles",
+    });
+
+    const roleEnumValues: EnumValueConfig[] = roleEntities
+      .map((entity) => ({
+        id: entity.values.key,
+        label: entity.values.name,
+        order: entity.values.displayOrder ?? 999,
+      }))
+      .sort((a, b) => (a.order as number) - (b.order as number))
+      .map(({ id, label }) => ({ id, label }));
+
+    users = roleEnumValues.length > 0
+      ? buildUsersCollection(roleEnumValues)
+      : buildUsersCollection();
+  } catch (error) {
+    console.warn(
+      "Failed to fetch roles, using default role values:",
+      error
+    );
+    users = buildUsersCollection();
+  }
+
   return [
     { ...activitiesCollection, databaseId: "default" },
     { ...menuItemsCollection, databaseId: "default" },
     { ...faqsCollection, databaseId: "default" },
     { ...communityPosts, databaseId: "default" },
     { ...taxonomiesCollection, databaseId: "default" },
-    { ...usersCollection, databaseId: "default" },
+    { ...rolesCollection, databaseId: "default" },
+    { ...users, databaseId: "default" },
   ];
 };
 
