@@ -17,6 +17,7 @@ import {
   getDocs,
   getFirestore,
   limit,
+  onSnapshot,
   query,
   where,
 } from "firebase/firestore";
@@ -95,6 +96,42 @@ function toPermissionLabel(permissionKey: string): string {
     .join(" ");
 }
 
+function populateRolesCacheFromDocs(
+  docs: Array<{ id: string; data: () => unknown }>
+): { byKey: Map<string, Partial<Role>>; enumValues: EnumValueConfig[] } {
+  const byKey = new Map<string, Partial<Role>>();
+  const roleEnumValues: Array<EnumValueConfig & { order: number }> = [];
+
+  docs.forEach((roleDoc) => {
+    const values = roleDoc.data() as Partial<Role> | undefined;
+    const rawKey = values?.key;
+    const rawName = values?.name;
+
+    const key = typeof rawKey === "string" && rawKey.trim().length > 0
+      ? rawKey.trim()
+      : roleDoc.id;
+    if (!key) return;
+
+    const label = typeof rawName === "string" && rawName.trim().length > 0
+      ? rawName.trim()
+      : key;
+    const order = typeof values?.displayOrder === "number" ? values.displayOrder : 999;
+
+    byKey.set(key, { ...values, key, name: label });
+    roleEnumValues.push({ id: key, label, order });
+  });
+
+  const enumValues = roleEnumValues
+    .sort((a, b) => (a.order as number) - (b.order as number))
+    .map(({ id, label }) => ({ id, label }));
+
+  cachedRolesByKey = byKey;
+  cachedRoleEnumValues = enumValues;
+  rolesCacheExpiresAt = Date.now() + ROLE_CACHE_TTL_MS;
+
+  return { byKey, enumValues };
+}
+
 function primeRolesCacheInBackground() {
   if (rolesLoadInFlight || (cachedRoleEnumValues && isRolesCacheFresh())) return;
   rolesLoadInFlight = loadRolesCache(true)
@@ -139,45 +176,10 @@ async function loadRolesCache(forceRefresh = false): Promise<{
   }
 
   const db = getFirestore();
-  const roleSnapshot = await withTimeout(
-    getDocs(collection(db, "roles")),
-    "roles collection fetch"
-  );
-
-  const byKey = new Map<string, Partial<Role>>();
-  const roleEnumValues: Array<EnumValueConfig & { order: number }> = [];
-
-  roleSnapshot.docs.forEach((roleDoc) => {
-    const values = roleDoc.data() as Partial<Role> | undefined;
-    const rawKey = values?.key;
-    const rawName = values?.name;
-
-    const key = typeof rawKey === "string" && rawKey.trim().length > 0
-      ? rawKey.trim()
-      : roleDoc.id;
-    if (!key) return;
-
-    const label = typeof rawName === "string" && rawName.trim().length > 0
-      ? rawName.trim()
-      : key;
-    const order = typeof values?.displayOrder === "number" ? values.displayOrder : 999;
-
-    byKey.set(key, { ...values, key, name: label });
-    roleEnumValues.push({ id: key, label, order });
-  });
-
-  const sortedEnumValues = roleEnumValues
-    .sort((a, b) => (a.order as number) - (b.order as number))
-    .map(({ id, label }) => ({ id, label }));
-
-  cachedRolesByKey = byKey;
-  cachedRoleEnumValues = sortedEnumValues;
-  rolesCacheExpiresAt = Date.now() + ROLE_CACHE_TTL_MS;
-
-  return {
-    byKey,
-    enumValues: sortedEnumValues,
-  };
+  // Do not timeout full roles list aggressively; this runs in background
+  // and drives Users role dropdown options.
+  const roleSnapshot = await getDocs(collection(db, "roles"));
+  return populateRolesCacheFromDocs(roleSnapshot.docs);
 }
 
 async function getRoleByKey(roleKey: string): Promise<Partial<Role> | undefined> {
@@ -356,9 +358,25 @@ export default function FireCMSApp() {
     window.addEventListener("fractionball:community-categories-loaded", onCommunityLoaded);
     primeRolesCacheInBackground();
     primeCommunityCategoriesInBackground();
+
+    // Keep role enums in sync with Firestore updates so Users role dropdown
+    // updates without requiring blocking startup reads or manual refresh.
+    const db = getFirestore();
+    const unsubscribeRoles = onSnapshot(
+      collection(db, "roles"),
+      (snapshot) => {
+        populateRolesCacheFromDocs(snapshot.docs);
+        onRolesLoaded();
+      },
+      (error) => {
+        console.warn("Roles live subscription failed:", error);
+      }
+    );
+
     return () => {
       window.removeEventListener("fractionball:roles-loaded", onRolesLoaded);
       window.removeEventListener("fractionball:community-categories-loaded", onCommunityLoaded);
+      unsubscribeRoles();
     };
   }, []);
 

@@ -58,6 +58,8 @@ export function buildRolesCollection(dynamicPermissionKeys?: Record<string, stri
     group: "User Management",
     description:
       "Define roles and their permissions. Users are assigned a role which controls what they can access in the LMS.",
+    // Ensure CMS-created role docs use stable IDs (no random Firestore IDs).
+    customId: true,
     propertiesOrder: [
       "key",
       "name",
@@ -70,6 +72,14 @@ export function buildRolesCollection(dynamicPermissionKeys?: Record<string, stri
     ],
 
     callbacks: {
+      onIdUpdate: ({ values, entityId }) => {
+        const raw = String(values.key ?? entityId ?? "").trim();
+        if (!raw) return entityId ?? "";
+        return raw
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^A-Z0-9_]/g, "");
+      },
       onPreSave: ({ values, status }) => {
         const now = new Date();
         if (status === "new" || status === "copy") {
