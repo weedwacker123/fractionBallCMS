@@ -13,6 +13,7 @@ export const permissionKeys: Record<string, string> = {
   "cms_edit": "CMS: Edit",
   "activities_view": "Activities: View",
   "resources_download": "Resources: Download",
+  "community_view": "Community: View",
   "community_post": "Community: Post",
   "community_moderate": "Community: Moderate",
 };

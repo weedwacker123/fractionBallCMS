@@ -9,7 +9,16 @@ import {
   EntityCollectionsBuilder,
   EnumValueConfig,
 } from "@firecms/core";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
 
 import { firebaseConfig } from "./firebase-config";
 
@@ -23,7 +32,120 @@ import {
   buildCommunityPostsCollection,
   rolesCollection,
 } from "./collections";
-import type { Taxonomy, Role } from "./collections";
+import type { Role } from "./collections";
+
+const ROLE_CACHE_TTL_MS = 60_000;
+const COMMUNITY_CATEGORY_CACHE_TTL_MS = 60_000;
+let cachedRolesByKey: Map<string, Partial<Role>> | null = null;
+let cachedRoleEnumValues: EnumValueConfig[] | null = null;
+let rolesCacheExpiresAt = 0;
+let cachedCommunityCategoryEnumValues: EnumValueConfig[] | null = null;
+let communityCategoryCacheExpiresAt = 0;
+
+function isRolesCacheFresh() {
+  return Date.now() < rolesCacheExpiresAt;
+}
+
+function isCommunityCategoryCacheFresh() {
+  return Date.now() < communityCategoryCacheExpiresAt;
+}
+
+async function loadRolesCache(forceRefresh = false): Promise<{
+  byKey: Map<string, Partial<Role>>;
+  enumValues: EnumValueConfig[];
+}> {
+  if (!forceRefresh && cachedRolesByKey && cachedRoleEnumValues && isRolesCacheFresh()) {
+    return {
+      byKey: cachedRolesByKey,
+      enumValues: cachedRoleEnumValues,
+    };
+  }
+
+  const db = getFirestore();
+  const roleSnapshot = await getDocs(collection(db, "roles"));
+
+  const byKey = new Map<string, Partial<Role>>();
+  const roleEnumValues: Array<EnumValueConfig & { order: number }> = [];
+
+  roleSnapshot.docs.forEach((roleDoc) => {
+    const values = roleDoc.data() as Partial<Role> | undefined;
+    const rawKey = values?.key;
+    const rawName = values?.name;
+
+    const key = typeof rawKey === "string" && rawKey.trim().length > 0
+      ? rawKey.trim()
+      : roleDoc.id;
+    if (!key) return;
+
+    const label = typeof rawName === "string" && rawName.trim().length > 0
+      ? rawName.trim()
+      : key;
+    const order = typeof values?.displayOrder === "number" ? values.displayOrder : 999;
+
+    byKey.set(key, { ...values, key, name: label });
+    roleEnumValues.push({ id: key, label, order });
+  });
+
+  const sortedEnumValues = roleEnumValues
+    .sort((a, b) => (a.order as number) - (b.order as number))
+    .map(({ id, label }) => ({ id, label }));
+
+  cachedRolesByKey = byKey;
+  cachedRoleEnumValues = sortedEnumValues;
+  rolesCacheExpiresAt = Date.now() + ROLE_CACHE_TTL_MS;
+
+  return {
+    byKey,
+    enumValues: sortedEnumValues,
+  };
+}
+
+async function getRoleByKey(roleKey: string): Promise<Partial<Role> | undefined> {
+  const cached = await loadRolesCache();
+  const fromCache = cached.byKey.get(roleKey);
+  if (fromCache) return fromCache;
+
+  const db = getFirestore();
+  const roleByKey = await getDocs(
+    query(collection(db, "roles"), where("key", "==", roleKey), limit(1))
+  );
+  const roleData = roleByKey.docs[0]?.data() as Partial<Role> | undefined;
+  if (!roleData) return undefined;
+
+  // Refresh and update cache map with discovered key.
+  const refreshed = await loadRolesCache(true);
+  const normalizedKey = (roleData.key ?? roleKey) as string;
+  refreshed.byKey.set(normalizedKey, roleData);
+  return roleData;
+}
+
+async function loadCommunityCategoryEnumValues(forceRefresh = false): Promise<EnumValueConfig[]> {
+  if (!forceRefresh && cachedCommunityCategoryEnumValues && isCommunityCategoryCacheFresh()) {
+    return cachedCommunityCategoryEnumValues;
+  }
+
+  const db = getFirestore();
+  const snapshot = await getDocs(
+    query(
+      collection(db, "taxonomies"),
+      where("type", "==", "community_category"),
+      where("active", "==", true)
+    )
+  );
+
+  const byId = new Map<string, EnumValueConfig>();
+  snapshot.docs.forEach((docSnap) => {
+    const values = (docSnap.data() as { values?: Array<{ key?: string; label?: string }> } | undefined)?.values ?? [];
+    values.forEach((v) => {
+      if (v.key && v.label) byId.set(v.key, { id: v.key, label: v.label });
+    });
+  });
+
+  const enumValues = Array.from(byId.values());
+  cachedCommunityCategoryEnumValues = enumValues;
+  communityCategoryCacheExpiresAt = Date.now() + COMMUNITY_CATEGORY_CACHE_TTL_MS;
+  return enumValues;
+}
 
 /**
  * Authenticator — checks user's Firestore role for CMS permissions.
@@ -52,9 +174,13 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
       return false;
     }
 
-    // Fetch role permissions
-    const roleSnap = await getDoc(doc(db, "roles", roleKey));
-    const permissions = roleSnap.data()?.permissions || {};
+    // Fetch role permissions from short-lived in-memory cache
+    let roleData = await getRoleByKey(roleKey);
+    if (!roleData) {
+      roleData = (await getDoc(doc(db, "roles", roleKey))).data() as Partial<Role> | undefined;
+    }
+
+    const permissions = roleData?.permissions || {};
     const hasCmsView = permissions.cms_view === true;
     const hasCmsEdit = permissions.cms_edit === true;
 
@@ -67,7 +193,7 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
     authController.setUserRoles?.([
       {
         id: roleKey,
-        name: roleSnap.data()?.name || roleKey,
+        name: roleData?.name || roleKey,
         isAdmin: roleKey === "ADMIN",
         defaultPermissions: {
           read: true,
@@ -91,63 +217,37 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
  * 1. community_category taxonomy → communityPosts category enum
  * 2. roles → users role enum
  */
-const collectionsBuilder: EntityCollectionsBuilder = async ({ dataSource }) => {
+const collectionsBuilder: EntityCollectionsBuilder = async () => {
   let communityPosts;
   let users;
 
-  // Fetch community categories (existing logic)
-  try {
-    const taxonomyEntities = await dataSource.fetchCollection<Taxonomy>({
-      path: "taxonomies",
-      filter: {
-        type: ["==", "community_category"],
-        active: ["==", true],
-      },
-    });
+  const [communityResult, rolesResult] = await Promise.allSettled([
+    loadCommunityCategoryEnumValues(),
+    loadRolesCache(),
+  ]);
 
-    const enumValues: EnumValueConfig[] = [];
-    for (const entity of taxonomyEntities) {
-      const values = entity.values?.values ?? [];
-      for (const v of values) {
-        if (v.key && v.label) {
-          enumValues.push({ id: v.key, label: v.label });
-        }
-      }
-    }
-
+  if (communityResult.status === "fulfilled") {
+    const enumValues = communityResult.value;
     communityPosts = enumValues.length > 0
       ? buildCommunityPostsCollection(enumValues)
       : buildCommunityPostsCollection();
-  } catch (error) {
+  } else {
     console.warn(
       "Failed to fetch community_category taxonomy, using defaults:",
-      error
+      communityResult.reason
     );
     communityPosts = buildCommunityPostsCollection();
   }
 
-  // Fetch roles for dynamic user role dropdown
-  try {
-    const roleEntities = await dataSource.fetchCollection<Role>({
-      path: "roles",
-    });
-
-    const roleEnumValues: EnumValueConfig[] = roleEntities
-      .map((entity) => ({
-        id: entity.values.key,
-        label: entity.values.name,
-        order: entity.values.displayOrder ?? 999,
-      }))
-      .sort((a, b) => (a.order as number) - (b.order as number))
-      .map(({ id, label }) => ({ id, label }));
-
+  if (rolesResult.status === "fulfilled") {
+    const roleEnumValues = rolesResult.value.enumValues;
     users = roleEnumValues.length > 0
       ? buildUsersCollection(roleEnumValues)
       : buildUsersCollection();
-  } catch (error) {
+  } else {
     console.warn(
       "Failed to fetch roles, using default role values:",
-      error
+      rolesResult.reason
     );
     users = buildUsersCollection();
   }
