@@ -3,6 +3,7 @@
  * A complete CMS for managing educational content in Firebase
  */
 
+import { useEffect, useState } from "react";
 import { FireCMSFirebaseApp, FirebaseUserWrapper } from "@firecms/firebase";
 import {
   Authenticator,
@@ -44,6 +45,8 @@ let cachedRoleEnumValues: EnumValueConfig[] | null = null;
 let rolesCacheExpiresAt = 0;
 let cachedCommunityCategoryEnumValues: EnumValueConfig[] | null = null;
 let communityCategoryCacheExpiresAt = 0;
+let rolesLoadInFlight: Promise<void> | null = null;
+let communityLoadInFlight: Promise<void> | null = null;
 
 function isRolesCacheFresh() {
   return Date.now() < rolesCacheExpiresAt;
@@ -69,7 +72,7 @@ if (typeof window !== "undefined") {
 
 async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       reject(new Error(`${label} timed out after ${FIRESTORE_OP_TIMEOUT_MS}ms`));
     }, FIRESTORE_OP_TIMEOUT_MS);
 
@@ -90,6 +93,38 @@ function toPermissionLabel(permissionKey: string): string {
     .split("_")
     .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part))
     .join(" ");
+}
+
+function primeRolesCacheInBackground() {
+  if (rolesLoadInFlight || (cachedRoleEnumValues && isRolesCacheFresh())) return;
+  rolesLoadInFlight = loadRolesCache(true)
+    .then(() => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("fractionball:roles-loaded"));
+      }
+    })
+    .catch((error) => {
+      console.warn("Background roles load failed:", error);
+    })
+    .finally(() => {
+      rolesLoadInFlight = null;
+    });
+}
+
+function primeCommunityCategoriesInBackground() {
+  if (communityLoadInFlight || (cachedCommunityCategoryEnumValues && isCommunityCategoryCacheFresh())) return;
+  communityLoadInFlight = loadCommunityCategoryEnumValues(true)
+    .then(() => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("fractionball:community-categories-loaded"));
+      }
+    })
+    .catch((error) => {
+      console.warn("Background community category load failed:", error);
+    })
+    .finally(() => {
+      communityLoadInFlight = null;
+    });
 }
 
 async function loadRolesCache(forceRefresh = false): Promise<{
@@ -270,44 +305,26 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
  * 2. roles → users role enum
  */
 const collectionsBuilder: EntityCollectionsBuilder = async () => {
-  let communityPosts;
-  let users;
-
-  const [communityResult, rolesResult] = await Promise.allSettled([
-    loadCommunityCategoryEnumValues(),
-    loadRolesCache(false),
-  ]);
-
-  if (communityResult.status === "fulfilled") {
-    const enumValues = communityResult.value;
-    communityPosts = enumValues.length > 0
-      ? buildCommunityPostsCollection(enumValues)
-      : buildCommunityPostsCollection();
-  } else {
-    console.warn(
-      "Failed to fetch community_category taxonomy, using defaults:",
-      communityResult.reason
-    );
-    communityPosts = buildCommunityPostsCollection();
+  const communityEnumValues = cachedCommunityCategoryEnumValues;
+  if (!communityEnumValues || !isCommunityCategoryCacheFresh()) {
+    primeCommunityCategoriesInBackground();
   }
+  const communityPosts = communityEnumValues && communityEnumValues.length > 0
+    ? buildCommunityPostsCollection(communityEnumValues)
+    : buildCommunityPostsCollection();
 
-  if (rolesResult.status === "fulfilled") {
-    const roleEnumValues = rolesResult.value.enumValues;
-    users = roleEnumValues.length > 0
-      ? buildUsersCollection(roleEnumValues)
-      : buildUsersCollection();
-  } else {
-    console.warn(
-      "Failed to fetch roles, using default role values:",
-      rolesResult.reason
-    );
-    users = buildUsersCollection();
+  const roleEnumValues = cachedRoleEnumValues;
+  if (!roleEnumValues || !isRolesCacheFresh()) {
+    primeRolesCacheInBackground();
   }
+  const users = roleEnumValues && roleEnumValues.length > 0
+    ? buildUsersCollection(roleEnumValues)
+    : buildUsersCollection();
 
   let dynamicRolesCollection = rolesCollection;
-  if (rolesResult.status === "fulfilled") {
+  if (cachedRolesByKey && cachedRolesByKey.size > 0) {
     const dynamicPermissionLabels: Record<string, string> = { ...permissionKeys };
-    rolesResult.value.byKey.forEach((role) => {
+    cachedRolesByKey.forEach((role) => {
       const permissions = role.permissions ?? {};
       Object.keys(permissions).forEach((permissionKey) => {
         if (!dynamicPermissionLabels[permissionKey]) {
@@ -330,8 +347,24 @@ const collectionsBuilder: EntityCollectionsBuilder = async () => {
 };
 
 export default function FireCMSApp() {
+  const [appKey, setAppKey] = useState(0);
+
+  useEffect(() => {
+    const onRolesLoaded = () => setAppKey((k) => k + 1);
+    const onCommunityLoaded = () => setAppKey((k) => k + 1);
+    window.addEventListener("fractionball:roles-loaded", onRolesLoaded);
+    window.addEventListener("fractionball:community-categories-loaded", onCommunityLoaded);
+    primeRolesCacheInBackground();
+    primeCommunityCategoriesInBackground();
+    return () => {
+      window.removeEventListener("fractionball:roles-loaded", onRolesLoaded);
+      window.removeEventListener("fractionball:community-categories-loaded", onCommunityLoaded);
+    };
+  }, []);
+
   return (
     <FireCMSFirebaseApp
+      key={appKey}
       name="FractionBall CMS"
       firebaseConfig={firebaseConfig}
       collections={collectionsBuilder}
