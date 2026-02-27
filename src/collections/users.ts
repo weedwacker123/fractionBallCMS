@@ -1,17 +1,10 @@
-import { buildCollection, buildProperty, EnumValues } from "@firecms/core";
+import { buildCollection, buildProperty } from "@firecms/core";
 
 /**
  * Users Collection
  * User management with dynamic role assignment.
  * Role enum values are loaded from the Firestore `roles` collection at runtime.
  */
-
-// Default role enum (fallback when roles collection not yet loaded)
-const defaultRoleValues: EnumValues = {
-  ADMIN: "Admin",
-  CONTENT_MANAGER: "Content Manager",
-  REGISTERED_USER: "Registered User",
-};
 
 export interface User {
   email: string;
@@ -25,10 +18,11 @@ export interface User {
 }
 
 /**
- * Build the users collection with dynamic role enum values.
- * Roles are managed via the Roles collection.
+ * Build the users collection.
+ * Role is a reference to the roles collection, so available values are
+ * always loaded directly from Firestore (no enum fallback drift).
  */
-export function buildUsersCollection(roleEnumValues?: EnumValues) {
+export function buildUsersCollection() {
   return buildCollection<User>({
     id: "users",
     name: "Users",
@@ -59,9 +53,12 @@ export function buildUsersCollection(roleEnumValues?: EnumValues) {
       role: buildProperty({
         name: "Role",
         dataType: "string",
-        enumValues: roleEnumValues ?? defaultRoleValues,
+        reference: {
+          dataType: "reference",
+          path: "roles",
+        },
         validation: { required: true },
-        description: "User role (defined in Roles collection)",
+        description: "User role document ID from Roles collection",
       }),
 
       isActive: buildProperty({

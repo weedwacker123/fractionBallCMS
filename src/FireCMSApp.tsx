@@ -315,13 +315,10 @@ const collectionsBuilder: EntityCollectionsBuilder = async () => {
     ? buildCommunityPostsCollection(communityEnumValues)
     : buildCommunityPostsCollection();
 
-  const roleEnumValues = cachedRoleEnumValues;
-  if (!roleEnumValues || !isRolesCacheFresh()) {
+  if (!cachedRoleEnumValues || !isRolesCacheFresh()) {
     primeRolesCacheInBackground();
   }
-  const users = roleEnumValues && roleEnumValues.length > 0
-    ? buildUsersCollection(roleEnumValues)
-    : buildUsersCollection();
+  const users = buildUsersCollection();
 
   let dynamicRolesCollection = rolesCollection;
   if (cachedRolesByKey && cachedRolesByKey.size > 0) {
