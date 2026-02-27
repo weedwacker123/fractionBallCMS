@@ -26,6 +26,8 @@ import { firebaseConfig } from "./firebase-config";
 import {
   activitiesCollection,
   buildUsersCollection,
+  buildRolesCollection,
+  permissionKeys,
   taxonomiesCollection,
   menuItemsCollection,
   faqsCollection,
@@ -48,6 +50,13 @@ function isRolesCacheFresh() {
 
 function isCommunityCategoryCacheFresh() {
   return Date.now() < communityCategoryCacheExpiresAt;
+}
+
+function toPermissionLabel(permissionKey: string): string {
+  return permissionKey
+    .split("_")
+    .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part))
+    .join(" ");
 }
 
 async function loadRolesCache(forceRefresh = false): Promise<{
@@ -223,7 +232,8 @@ const collectionsBuilder: EntityCollectionsBuilder = async () => {
 
   const [communityResult, rolesResult] = await Promise.allSettled([
     loadCommunityCategoryEnumValues(),
-    loadRolesCache(),
+    // Force refresh so Users role dropdown reflects role/permission edits immediately.
+    loadRolesCache(true),
   ]);
 
   if (communityResult.status === "fulfilled") {
@@ -252,13 +262,27 @@ const collectionsBuilder: EntityCollectionsBuilder = async () => {
     users = buildUsersCollection();
   }
 
+  let dynamicRolesCollection = rolesCollection;
+  if (rolesResult.status === "fulfilled") {
+    const dynamicPermissionLabels: Record<string, string> = { ...permissionKeys };
+    rolesResult.value.byKey.forEach((role) => {
+      const permissions = role.permissions ?? {};
+      Object.keys(permissions).forEach((permissionKey) => {
+        if (!dynamicPermissionLabels[permissionKey]) {
+          dynamicPermissionLabels[permissionKey] = toPermissionLabel(permissionKey);
+        }
+      });
+    });
+    dynamicRolesCollection = buildRolesCollection(dynamicPermissionLabels);
+  }
+
   return [
     { ...activitiesCollection, databaseId: "default" },
     { ...menuItemsCollection, databaseId: "default" },
     { ...faqsCollection, databaseId: "default" },
     { ...communityPosts, databaseId: "default" },
     { ...taxonomiesCollection, databaseId: "default" },
-    { ...rolesCollection, databaseId: "default" },
+    { ...dynamicRolesCollection, databaseId: "default" },
     { ...users, databaseId: "default" },
   ];
 };
