@@ -89,10 +89,16 @@ export function buildRolesCollection(dynamicPermissionKeys?: Record<string, stri
         return values;
       },
       onSaveSuccess: ({ context }) => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("fractionball:roles-changed"));
+        }
         // Re-run collectionsBuilder so the Users role dropdown picks up changes
         context.navigation.refreshNavigation();
       },
       onDelete: ({ context }) => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("fractionball:roles-changed"));
+        }
         context.navigation.refreshNavigation();
       },
     },

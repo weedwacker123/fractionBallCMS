@@ -38,6 +38,7 @@ import type { Role } from "./collections";
 
 const ROLE_CACHE_TTL_MS = 60_000;
 const COMMUNITY_CATEGORY_CACHE_TTL_MS = 60_000;
+const FIRESTORE_OP_TIMEOUT_MS = 4_000;
 let cachedRolesByKey: Map<string, Partial<Role>> | null = null;
 let cachedRoleEnumValues: EnumValueConfig[] | null = null;
 let rolesCacheExpiresAt = 0;
@@ -50,6 +51,38 @@ function isRolesCacheFresh() {
 
 function isCommunityCategoryCacheFresh() {
   return Date.now() < communityCategoryCacheExpiresAt;
+}
+
+function clearDynamicCaches() {
+  cachedRolesByKey = null;
+  cachedRoleEnumValues = null;
+  rolesCacheExpiresAt = 0;
+  cachedCommunityCategoryEnumValues = null;
+  communityCategoryCacheExpiresAt = 0;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("fractionball:roles-changed", () => {
+    clearDynamicCaches();
+  });
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out after ${FIRESTORE_OP_TIMEOUT_MS}ms`));
+    }, FIRESTORE_OP_TIMEOUT_MS);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
 }
 
 function toPermissionLabel(permissionKey: string): string {
@@ -71,7 +104,10 @@ async function loadRolesCache(forceRefresh = false): Promise<{
   }
 
   const db = getFirestore();
-  const roleSnapshot = await getDocs(collection(db, "roles"));
+  const roleSnapshot = await withTimeout(
+    getDocs(collection(db, "roles")),
+    "roles collection fetch"
+  );
 
   const byKey = new Map<string, Partial<Role>>();
   const roleEnumValues: Array<EnumValueConfig & { order: number }> = [];
@@ -110,21 +146,20 @@ async function loadRolesCache(forceRefresh = false): Promise<{
 }
 
 async function getRoleByKey(roleKey: string): Promise<Partial<Role> | undefined> {
-  const cached = await loadRolesCache();
-  const fromCache = cached.byKey.get(roleKey);
+  const fromCache = cachedRolesByKey?.get(roleKey);
   if (fromCache) return fromCache;
 
   const db = getFirestore();
-  const roleByKey = await getDocs(
-    query(collection(db, "roles"), where("key", "==", roleKey), limit(1))
+  const roleByKey = await withTimeout(
+    getDocs(query(collection(db, "roles"), where("key", "==", roleKey), limit(1))),
+    "role-by-key fetch"
   );
   const roleData = roleByKey.docs[0]?.data() as Partial<Role> | undefined;
   if (!roleData) return undefined;
 
-  // Refresh and update cache map with discovered key.
-  const refreshed = await loadRolesCache(true);
+  if (!cachedRolesByKey) cachedRolesByKey = new Map<string, Partial<Role>>();
   const normalizedKey = (roleData.key ?? roleKey) as string;
-  refreshed.byKey.set(normalizedKey, roleData);
+  cachedRolesByKey.set(normalizedKey, roleData);
   return roleData;
 }
 
@@ -134,12 +169,15 @@ async function loadCommunityCategoryEnumValues(forceRefresh = false): Promise<En
   }
 
   const db = getFirestore();
-  const snapshot = await getDocs(
-    query(
-      collection(db, "taxonomies"),
-      where("type", "==", "community_category"),
-      where("active", "==", true)
-    )
+  const snapshot = await withTimeout(
+    getDocs(
+      query(
+        collection(db, "taxonomies"),
+        where("type", "==", "community_category"),
+        where("active", "==", true)
+      )
+    ),
+    "community categories fetch"
   );
 
   const byId = new Map<string, EnumValueConfig>();
@@ -171,7 +209,10 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
     const db = getFirestore();
 
     // Look up user document by Firebase UID
-    const userSnap = await getDoc(doc(db, "users", user.uid));
+    const userSnap = await withTimeout(
+      getDoc(doc(db, "users", user.uid)),
+      "user role lookup"
+    );
     if (!userSnap.exists()) {
       console.warn("CMS auth: no user document found for", user.uid);
       return false;
@@ -186,7 +227,9 @@ const fractionBallAuthenticator: Authenticator<FirebaseUserWrapper> = async ({
     // Fetch role permissions from short-lived in-memory cache
     let roleData = await getRoleByKey(roleKey);
     if (!roleData) {
-      roleData = (await getDoc(doc(db, "roles", roleKey))).data() as Partial<Role> | undefined;
+      roleData = (
+        await withTimeout(getDoc(doc(db, "roles", roleKey)), "role doc lookup")
+      ).data() as Partial<Role> | undefined;
     }
 
     const permissions = roleData?.permissions || {};
@@ -232,8 +275,7 @@ const collectionsBuilder: EntityCollectionsBuilder = async () => {
 
   const [communityResult, rolesResult] = await Promise.allSettled([
     loadCommunityCategoryEnumValues(),
-    // Force refresh so Users role dropdown reflects role/permission edits immediately.
-    loadRolesCache(true),
+    loadRolesCache(false),
   ]);
 
   if (communityResult.status === "fulfilled") {
